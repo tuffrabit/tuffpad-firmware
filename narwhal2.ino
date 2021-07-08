@@ -177,6 +177,9 @@ void setup() {
   pinMode(THUMB_BUTTON_PIN, INPUT_PULLUP);
   pinMode(DPAD_DETECTION_PIN, INPUT_PULLUP);
 
+  isKeyboardMode = false;
+  lastKeyboardBlink = 0;
+  lastBlinkState = true;
   dpadMode = isDpadMode();
 
   if (dpadMode) {
@@ -190,10 +193,6 @@ void setup() {
     setBounds();
     detectStartupFlags();
   }
-  
-  isKeyboardMode = false;
-  lastKeyboardBlink = 0;
-  lastBlinkState = true;
 
   Xstick = 512;
   Ystick = 512;
@@ -402,23 +401,27 @@ void handleKeyboardModeBlink()
       if (lastBlinkState) {
         setRGBLed(0, 0, 0);
       } else {
-        switch (activeProfileNumber) {
-          case 1:
-            setRGBLed(keyProfileRGBRed1, keyProfileRGBGreen1, keyProfileRGBBlue1);
-            break;
-          case 2:
-            setRGBLed(keyProfileRGBRed2, keyProfileRGBGreen2, keyProfileRGBBlue2);
-            break;
-          case 3:
-            setRGBLed(keyProfileRGBRed3, keyProfileRGBGreen3, keyProfileRGBBlue3);
-            break;
-        }
+        setRGBColorToActiveProfile();
       }
       
       lastBlinkState = !lastBlinkState;
       lastKeyboardBlink = now;
     }
   }
+}
+
+void setRGBColorToActiveProfile() {
+  switch (activeProfileNumber) {
+      case 1:
+        setRGBLed(keyProfileRGBRed1, keyProfileRGBGreen1, keyProfileRGBBlue1);
+        break;
+      case 2:
+        setRGBLed(keyProfileRGBRed2, keyProfileRGBGreen2, keyProfileRGBBlue2);
+        break;
+      case 3:
+        setRGBLed(keyProfileRGBRed3, keyProfileRGBGreen3, keyProfileRGBBlue3);
+        break;
+    }
 }
 
 void keyboardPress(byte key)
@@ -833,18 +836,21 @@ void switchProfile(byte profileKey)
       memcpy(activekeyboardModeStickProfile, keyboardModeStickProfile1, sizeof(keyboardModeStickProfile1));
       setRGBLed(keyProfileRGBRed1, keyProfileRGBGreen1, keyProfileRGBBlue1);
       activeProfileNumber = 1;
+      writeCurrentActiveProfile();
       break;
     case switchProfile2Key:
       memcpy(activeKeyProfile, keyProfile2, sizeof(keyProfile2));
       memcpy(activekeyboardModeStickProfile, keyboardModeStickProfile2, sizeof(keyboardModeStickProfile2));
       setRGBLed(keyProfileRGBRed2, keyProfileRGBGreen2, keyProfileRGBBlue2);
       activeProfileNumber = 2;
+      writeCurrentActiveProfile();
       break;
     case switchProfile3Key:
       memcpy(activeKeyProfile, keyProfile3, sizeof(keyProfile3));
       memcpy(activekeyboardModeStickProfile, keyboardModeStickProfile3, sizeof(keyboardModeStickProfile3));
       setRGBLed(keyProfileRGBRed3, keyProfileRGBGreen3, keyProfileRGBBlue3);
       activeProfileNumber = 3;
+      writeCurrentActiveProfile();
       break;
     case nextProfileKey:
       switch (activeProfileNumber) {
@@ -1518,6 +1524,9 @@ void handleSerialGet() {
       writeSerialKeyboardModeOffset('X', keyboardModeXStartOffset);
       writeSerialKeyboardModeOffset('Y', keyboardModeYStartOffset);
       break;
+    case 68: // is keyboard mode active?
+      writeIsKeyboardModeActive();
+      break;
   }
 }
 
@@ -1592,15 +1601,15 @@ void handleSerialGetProfile2() {
   writeSerialProfileKey('2', 'r', keyProfile2[2][3]);
   writeSerialProfileKey('2', 's', keyProfile2[3][3]);
   writeSerialProfileKey('2', 't', keyProfile2[4][3]);
-  writeSerialProfileKey('2', 'u', joystickButtonProfile1);
-  writeSerialProfileKey('2', 'v', thumbButtonProfile1);
-  writeSerialProfileKey('2', 'w', keyboardModeStickProfile1[0]);
-  writeSerialProfileKey('2', 'x', keyboardModeStickProfile1[1]);
-  writeSerialProfileKey('2', 'y', keyboardModeStickProfile1[2]);
-  writeSerialProfileKey('2', 'z', keyboardModeStickProfile1[3]);
-  writeSerialProfileKey('2', '1', (byte)keyProfileRGBRed1);
-  writeSerialProfileKey('2', '2', (byte)keyProfileRGBGreen1);
-  writeSerialProfileKey('2', '3', (byte)keyProfileRGBBlue1);
+  writeSerialProfileKey('2', 'u', joystickButtonProfile2);
+  writeSerialProfileKey('2', 'v', thumbButtonProfile2);
+  writeSerialProfileKey('2', 'w', keyboardModeStickProfile2[0]);
+  writeSerialProfileKey('2', 'x', keyboardModeStickProfile2[1]);
+  writeSerialProfileKey('2', 'y', keyboardModeStickProfile2[2]);
+  writeSerialProfileKey('2', 'z', keyboardModeStickProfile2[3]);
+  writeSerialProfileKey('2', '1', (byte)keyProfileRGBRed2);
+  writeSerialProfileKey('2', '2', (byte)keyProfileRGBGreen2);
+  writeSerialProfileKey('2', '3', (byte)keyProfileRGBBlue2);
   writeSerialProfileKey('2', '4', dpadUpProfile2);
   writeSerialProfileKey('2', '5', dpadDownProfile2);
   writeSerialProfileKey('2', '6', dpadLeftProfile2);
@@ -1628,15 +1637,15 @@ void handleSerialGetProfile3() {
   writeSerialProfileKey('3', 'r', keyProfile3[2][3]);
   writeSerialProfileKey('3', 's', keyProfile3[3][3]);
   writeSerialProfileKey('3', 't', keyProfile3[4][3]);
-  writeSerialProfileKey('3', 'u', joystickButtonProfile1);
-  writeSerialProfileKey('3', 'v', thumbButtonProfile1);
-  writeSerialProfileKey('3', 'w', keyboardModeStickProfile1[0]);
-  writeSerialProfileKey('3', 'x', keyboardModeStickProfile1[1]);
-  writeSerialProfileKey('3', 'y', keyboardModeStickProfile1[2]);
-  writeSerialProfileKey('3', 'z', keyboardModeStickProfile1[3]);
-  writeSerialProfileKey('3', '1', (byte)keyProfileRGBRed1);
-  writeSerialProfileKey('3', '2', (byte)keyProfileRGBGreen1);
-  writeSerialProfileKey('3', '3', (byte)keyProfileRGBBlue1);
+  writeSerialProfileKey('3', 'u', joystickButtonProfile3);
+  writeSerialProfileKey('3', 'v', thumbButtonProfile3);
+  writeSerialProfileKey('3', 'w', keyboardModeStickProfile3[0]);
+  writeSerialProfileKey('3', 'x', keyboardModeStickProfile3[1]);
+  writeSerialProfileKey('3', 'y', keyboardModeStickProfile3[2]);
+  writeSerialProfileKey('3', 'z', keyboardModeStickProfile3[3]);
+  writeSerialProfileKey('3', '1', (byte)keyProfileRGBRed3);
+  writeSerialProfileKey('3', '2', (byte)keyProfileRGBGreen3);
+  writeSerialProfileKey('3', '3', (byte)keyProfileRGBBlue3);
   writeSerialProfileKey('3', '4', dpadUpProfile3);
   writeSerialProfileKey('3', '5', dpadDownProfile3);
   writeSerialProfileKey('3', '6', dpadLeftProfile3);
@@ -1659,6 +1668,9 @@ void handleSerialSet() {
       break;
     case 69:
       handleSerialInitProfiles();
+      break;
+    case 70:
+      handleSerialSetKeyboardIsActive();
       break;
     case 80:
       handleSerialSetProfile();
@@ -2173,6 +2185,15 @@ void handleSerialSetProfile3() {
   }
 }
 
+void handleSerialSetKeyboardIsActive() {
+  if (serialData[2] == 1) {
+    isKeyboardMode = true;
+  } else {
+    isKeyboardMode = false;
+    setRGBColorToActiveProfile();
+  }
+}
+
 void writeSerialProfileKey(char profileNumber, char key, byte value) {
   Serial.print('S');
   Serial.print('P');
@@ -2205,4 +2226,16 @@ void writeSerialKeyboardModeOffset(char axis, byte value) {
   Serial.print('C');
   Serial.print(axis);
   Serial.println(value);
+}
+
+void writeIsKeyboardModeActive() {
+  Serial.print('S');
+  Serial.print('D');
+  Serial.println(isKeyboardMode);
+}
+
+void writeCurrentActiveProfile() {
+  Serial.print('S');
+  Serial.print('A');
+  Serial.println(activeProfileNumber);
 }
