@@ -98,6 +98,7 @@ byte dpadUpProfile1;
 byte dpadDownProfile1;
 byte dpadLeftProfile1;
 byte dpadRightProfile1;
+bool isKeyboardModeProfile1;
 
 byte keyProfile2[ROWS][COLS];
 byte joystickButtonProfile2;
@@ -107,6 +108,7 @@ byte dpadUpProfile2;
 byte dpadDownProfile2;
 byte dpadLeftProfile2;
 byte dpadRightProfile2;
+bool isKeyboardModeProfile2;
 
 byte keyProfile3[ROWS][COLS];
 byte joystickButtonProfile3;
@@ -116,6 +118,7 @@ byte dpadUpProfile3;
 byte dpadDownProfile3;
 byte dpadLeftProfile3;
 byte dpadRightProfile3;
+bool isKeyboardModeProfile3;
 
 byte rowPins[ROWS] = {1, 2, 3, 4, 5}; //connect to the row pinouts of the kpd
 byte colPins[COLS] = {6, 7, 8, 9}; //connect to the column pinouts of the kpd
@@ -835,6 +838,7 @@ void switchProfile(byte profileKey)
       memcpy(activeKeyProfile, keyProfile1, sizeof(keyProfile1));
       memcpy(activekeyboardModeStickProfile, keyboardModeStickProfile1, sizeof(keyboardModeStickProfile1));
       setRGBLed(keyProfileRGBRed1, keyProfileRGBGreen1, keyProfileRGBBlue1);
+      isKeyboardMode = isKeyboardModeProfile1;
       activeProfileNumber = 1;
       writeCurrentActiveProfile();
       break;
@@ -842,6 +846,7 @@ void switchProfile(byte profileKey)
       memcpy(activeKeyProfile, keyProfile2, sizeof(keyProfile2));
       memcpy(activekeyboardModeStickProfile, keyboardModeStickProfile2, sizeof(keyboardModeStickProfile2));
       setRGBLed(keyProfileRGBRed2, keyProfileRGBGreen2, keyProfileRGBBlue2);
+      isKeyboardMode = isKeyboardModeProfile2;
       activeProfileNumber = 2;
       writeCurrentActiveProfile();
       break;
@@ -849,6 +854,7 @@ void switchProfile(byte profileKey)
       memcpy(activeKeyProfile, keyProfile3, sizeof(keyProfile3));
       memcpy(activekeyboardModeStickProfile, keyboardModeStickProfile3, sizeof(keyboardModeStickProfile3));
       setRGBLed(keyProfileRGBRed3, keyProfileRGBGreen3, keyProfileRGBBlue3);
+      isKeyboardMode = isKeyboardModeProfile3;
       activeProfileNumber = 3;
       writeCurrentActiveProfile();
       break;
@@ -1055,21 +1061,9 @@ void detectStartupFlags() {
 
       setLedState(ledState);
     }
-
-    if (joystickButton1.fallingEdge()) {
-      setLedState(HIGH);
-      isKeyboardMode = true;
-
-      break;
-    }
   }
-
-  if (!isKeyboardMode) {
-    setLedState(LOW);
-    setRGBLed(keyProfileRGBRed1, keyProfileRGBGreen1, keyProfileRGBBlue1);
-  } else {
-    setRGBLed(keyProfileRGBRed1, keyProfileRGBGreen1, keyProfileRGBBlue1);
-  }
+  
+  setRGBLed(keyProfileRGBRed1, keyProfileRGBGreen1, keyProfileRGBBlue1);
 }
 
 void initEEPROM()
@@ -1116,6 +1110,7 @@ void initEEPROM()
   keyProfileRGBRed1 = 255;
   keyProfileRGBGreen1 = 0;
   keyProfileRGBBlue1 = 0;
+  isKeyboardModeProfile1 = false;
   updateProfile1ToEEPROM();
 
   keyProfile2[0][0] = 't';
@@ -1151,6 +1146,7 @@ void initEEPROM()
   keyProfileRGBRed2 = 0;
   keyProfileRGBGreen2 = 255;
   keyProfileRGBBlue2 = 0;
+  isKeyboardModeProfile2 = false;
   updateProfile2ToEEPROM();
 
   keyProfile3[0][0] = '`';
@@ -1186,6 +1182,7 @@ void initEEPROM()
   keyProfileRGBRed3 = 0;
   keyProfileRGBGreen3 = 0;
   keyProfileRGBBlue3 = 255;
+  isKeyboardModeProfile3 = false;
   updateProfile3ToEEPROM();
 }
 
@@ -1241,6 +1238,7 @@ void updateProfile1ToEEPROM()
   EEPROM.update(98, dpadDownProfile1);
   EEPROM.update(99, dpadLeftProfile1);
   EEPROM.update(100, dpadRightProfile1);
+  EEPROM.update(109, isKeyboardModeProfile1);
 }
 
 void updateProfile2ToEEPROM()
@@ -1278,6 +1276,7 @@ void updateProfile2ToEEPROM()
   EEPROM.update(102, dpadDownProfile2);
   EEPROM.update(103, dpadLeftProfile2);
   EEPROM.update(104, dpadRightProfile2);
+  EEPROM.update(110, isKeyboardModeProfile2);
 }
 
 void updateProfile3ToEEPROM()
@@ -1315,6 +1314,7 @@ void updateProfile3ToEEPROM()
   EEPROM.update(106, dpadDownProfile3);
   EEPROM.update(107, dpadLeftProfile3);
   EEPROM.update(108, dpadRightProfile3);
+  EEPROM.update(111, isKeyboardModeProfile3);
 }
 
 short getLowestXFromEEPROM() {
@@ -1376,6 +1376,7 @@ void setProfile1FromEEPROM()
   dpadDownProfile1 = EEPROM.read(98);
   dpadLeftProfile1 = EEPROM.read(99);
   dpadRightProfile1 = EEPROM.read(100);
+  isKeyboardModeProfile1 = (bool)EEPROM.read(109);
 }
 
 void setProfile2FromEEPROM()
@@ -1413,6 +1414,7 @@ void setProfile2FromEEPROM()
   dpadDownProfile2 = EEPROM.read(102);
   dpadLeftProfile2 = EEPROM.read(103);
   dpadRightProfile2 = EEPROM.read(104);
+  isKeyboardModeProfile2 = (bool)EEPROM.read(110);
 }
 
 void setProfile3FromEEPROM()
@@ -1450,6 +1452,7 @@ void setProfile3FromEEPROM()
   dpadDownProfile3 = EEPROM.read(106);
   dpadLeftProfile3 = EEPROM.read(107);
   dpadRightProfile3 = EEPROM.read(108);
+  isKeyboardModeProfile3 = (bool)EEPROM.read(111);
 }
 
 void receiveSerialData() {
@@ -1578,6 +1581,7 @@ void handleSerialGetProfile1() {
   writeSerialProfileKey('1', '5', dpadDownProfile1);
   writeSerialProfileKey('1', '6', dpadLeftProfile1);
   writeSerialProfileKey('1', '7', dpadRightProfile1);
+  writeSerialProfileKey('1', '8', isKeyboardModeProfile1);
 }
 
 void handleSerialGetProfile2() {
@@ -1614,6 +1618,7 @@ void handleSerialGetProfile2() {
   writeSerialProfileKey('2', '5', dpadDownProfile2);
   writeSerialProfileKey('2', '6', dpadLeftProfile2);
   writeSerialProfileKey('2', '7', dpadRightProfile2);
+  writeSerialProfileKey('2', '8', isKeyboardModeProfile2);
 }
 
 void handleSerialGetProfile3() {
@@ -1650,6 +1655,7 @@ void handleSerialGetProfile3() {
   writeSerialProfileKey('3', '5', dpadDownProfile3);
   writeSerialProfileKey('3', '6', dpadLeftProfile3);
   writeSerialProfileKey('3', '7', dpadRightProfile3);
+  writeSerialProfileKey('3', '8', isKeyboardModeProfile3);
 }
 
 void handleSerialSet() {
@@ -1952,6 +1958,17 @@ void handleSerialSetProfile1() {
     case 55:
       dpadRightProfile1 = serialData[4];
       break;
+    case 123:
+      isKeyboardModeProfile1 = (bool)serialData[4];
+
+      if (isKeyboardModeProfile1) {
+        isKeyboardMode = true;
+      } else {
+        isKeyboardMode = false;
+        setRGBColorToActiveProfile();
+      }
+      
+      break;
   }
 
   if (activeProfileNumber == 1 && isRgbValue) {
@@ -2065,6 +2082,17 @@ void handleSerialSetProfile2() {
     case 55:
       dpadRightProfile2 = serialData[4];
       break;
+    case 123:
+      isKeyboardModeProfile2 = (bool)serialData[4];
+
+      if (isKeyboardModeProfile2) {
+        isKeyboardMode = true;
+      } else {
+        isKeyboardMode = false;
+        setRGBColorToActiveProfile();
+      }
+      
+      break;
   }
 
   if (activeProfileNumber == 2 && isRgbValue) {
@@ -2177,6 +2205,17 @@ void handleSerialSetProfile3() {
       break;
     case 55:
       dpadRightProfile3 = serialData[4];
+      break;
+    case 123:
+      isKeyboardModeProfile3 = (bool)serialData[4];
+
+      if (isKeyboardModeProfile3) {
+        isKeyboardMode = true;
+      } else {
+        isKeyboardMode = false;
+        setRGBColorToActiveProfile();
+      }
+      
       break;
   }
 
