@@ -56,8 +56,8 @@
 /**
   Start - Keyboard mode defines
 */
-byte keyboardModeXStartOffset;
-byte keyboardModeYStartOffset;
+unsigned short keyboardModeXStartOffset;
+unsigned short keyboardModeYStartOffset;
 /**
   Stop - Keyboard mode defines
 */
@@ -160,6 +160,8 @@ bool dpadMode;
 
 // up, down, left, right
 bool keyboardModeKeyStatus[4] = {false, false, false, false};
+unsigned long keyboardModeKeyLastChange[4] = {0, 0, 0, 0};
+unsigned long keyboardModeKeyChangeTime = 50;
 Bounce joystickButton1 = Bounce(JOYSTICK_1_BUTTON_PIN, 10);
 Bounce thumbButton = Bounce(THUMB_BUTTON_PIN, 10);
 Bounce dpadUpButton = Bounce(DPAD_UP_PIN, 10);
@@ -222,7 +224,7 @@ void doStickCalculations(bool constrainDeadzone = false) {
       if (Xstick > 512) {
         Xstick = constrain(map((Xstick - deadzone), 513, (xHigh - deadzone), 513, 1023), 513, 1023);
       } else if (Xstick < 512) {
-        Xstick = constrain(map((Xstick + deadzone), 513, (xLow + deadzone), 511, 0), 0, 511);
+        Xstick = constrain(map((Xstick + deadzone), (xLow + deadzone), 511, 0, 511), 0, 511);
       }
     }
 
@@ -232,7 +234,7 @@ void doStickCalculations(bool constrainDeadzone = false) {
       if (Ystick > 512) {
         Ystick = constrain(map((Ystick - deadzone), 513, (yHigh - deadzone), 513, 1023), 513, 1023);
       } else if (Ystick < 512) {
-        Ystick = constrain(map((Ystick + deadzone), 513, (yLow + deadzone), 511, 0), 0, 511);
+        Ystick = constrain(map((Ystick + deadzone), (yLow + deadzone), 511, 0, 511), 0, 511);
       }
     }
   }
@@ -269,7 +271,7 @@ void loop() {
     } else if (Ystick > (512 + keyboardModeYStartOffset)) {
       keyboardModeKeyPress[1] = true;
     }
-
+    
     handleKeyboundModeKey(KEYBOARD_MODE_STICK_UP_KEY, keyboardModeKeyPress[0]);
     handleKeyboundModeKey(KEYBOARD_MODE_STICK_DOWN_KEY, keyboardModeKeyPress[1]);
     handleKeyboundModeKey(KEYBOARD_MODE_STICK_LEFT_KEY, keyboardModeKeyPress[2]);
@@ -892,8 +894,6 @@ void switchProfile(byte profileKey)
 void setRGBLed(int red, int green, int blue)
 {
   analogWrite(RED_LED_PIN, constrain(red, 0, 255));
-  //analogWrite(GREEN_LED_PIN, constrain(green - 90, 0, 255));
-  //analogWrite(BLUE_LED_PIN, constrain(blue - 90, 0, 255));
   analogWrite(GREEN_LED_PIN, constrain(map(green, 0, 255, 0, 45), 0, 255));
   analogWrite(BLUE_LED_PIN, constrain(map(blue, 0, 255, 0, 45), 0, 255));
 }
@@ -916,18 +916,33 @@ void handleKeyboundModeKey(int key, bool isPress) {
       break;
   }
 
-  if (keyIndex > -1) {
-    if (isPress) {
-      if (keyboardModeKeyStatus[keyIndex] == false) {
-        keyboardPress(getCurrentProfileKeyboardModeKey(key));
-        keyboardModeKeyStatus[keyIndex] = true;
-      }
-    } else {
-      if (keyboardModeKeyStatus[keyIndex] == true) {
-        keyboardRelease(getCurrentProfileKeyboardModeKey(key));
-        keyboardModeKeyStatus[keyIndex] = false;
-      }
+  if (keyIndex == -1) {
+    return;
+  }
+
+  unsigned long rightNow = millis();
+  bool changed = false;
+
+  if ((rightNow - keyboardModeKeyLastChange[keyIndex]) < keyboardModeKeyChangeTime) {
+    return;
+  }
+  
+  if (isPress) {
+    if (keyboardModeKeyStatus[keyIndex] == false) {
+      keyboardPress(getCurrentProfileKeyboardModeKey(key));
+      keyboardModeKeyStatus[keyIndex] = true;
+      changed = true;
     }
+  } else {
+    if (keyboardModeKeyStatus[keyIndex] == true) {
+      keyboardRelease(getCurrentProfileKeyboardModeKey(key));
+      keyboardModeKeyStatus[keyIndex] = false;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    keyboardModeKeyLastChange[keyIndex] = rightNow;
   }
 }
 
@@ -1009,7 +1024,9 @@ void setDeadzone() {
 }
 
 void setBounds() {
-  deadzone = deadzone + 7;
+  //deadzone = deadzone + 54;
+  deadzone = deadzone + 49;
+  //deadzone = deadzone + 45;
   edgeAdjust = deadzone + 25;
   upperBound = 512 + deadzone;
   lowerBound = 512 - deadzone;
@@ -1104,9 +1121,6 @@ void initEEPROM()
   dpadDownProfile1 = 's';
   dpadLeftProfile1 = 'a';
   dpadRightProfile1 = 'd';
-  //keyProfileRGBRed1 = 255;
-  //keyProfileRGBGreen1 = 102;
-  //keyProfileRGBBlue1 = 102;
   keyProfileRGBRed1 = 255;
   keyProfileRGBGreen1 = 0;
   keyProfileRGBBlue1 = 0;
@@ -1199,8 +1213,8 @@ void updateBoundsToEEPROM(short lowestX, short highestX, short lowestY, short hi
 
 void updateKeyboardModeOffsetsToEEPROM()
 {
-  EEPROM.update(8, keyboardModeXStartOffset);
-  EEPROM.update(9, keyboardModeYStartOffset);
+  EEPROM.update(8, lowByte(keyboardModeXStartOffset));
+  EEPROM.update(9, lowByte(keyboardModeYStartOffset));
 }
 
 void updateProfile1ToEEPROM()
@@ -1333,11 +1347,11 @@ short getHighestYFromEEPROM() {
   return EEPROM.read(6) << 8 | EEPROM.read(7);
 }
 
-byte getKeyboardModeOffsetXFromEEPROM() {
+short getKeyboardModeOffsetXFromEEPROM() {
   return EEPROM.read(8);
 }
 
-byte getKeyboardModeOffsetYFromEEPROM() {
+short getKeyboardModeOffsetYFromEEPROM() {
   return EEPROM.read(9);
 }
 
@@ -1465,7 +1479,6 @@ void receiveSerialData() {
 
   while (Serial.available() > 0) {
     receivedByte = Serial.read();
-    //Serial.println(receivedByte);
 
     if (receivedByte == endMarker) {
       serialData[ndx] = endMarker;
@@ -1741,10 +1754,20 @@ void handleSerialSetCurrentStickBounds() {
 }
 
 void handleSerialSetKeyboardModeOffsets() {
+  unsigned short value = 0;
+
+  if (serialData[3] > 255) {
+    value = 255;
+  } else if (serialData[3] < 1) {
+    value = 0;
+  } else {
+    value = (unsigned short)serialData[3];
+  }
+  
   if (serialData[2] == 120) { // x axis
-    keyboardModeXStartOffset = serialData[3];
+    keyboardModeXStartOffset = value;
   } else { // y axis
-    keyboardModeYStartOffset = serialData[3];
+    keyboardModeYStartOffset = value;
   }
 }
 
@@ -2260,7 +2283,7 @@ void writeSerialStickBoundary(char axis, char dir, short value) {
   Serial.println(value);
 }
 
-void writeSerialKeyboardModeOffset(char axis, byte value) {
+void writeSerialKeyboardModeOffset(char axis, unsigned short value) {
   Serial.print('S');
   Serial.print('C');
   Serial.print(axis);
